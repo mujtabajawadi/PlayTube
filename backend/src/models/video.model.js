@@ -23,7 +23,7 @@ const videoSchema = new Schema({
         required: true
     },
     views: {
-        type: Number,//video duration will be provided by cloudinary
+        type: Number,
         default: 0,
     },
     isPublished: {
