@@ -196,7 +196,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
       secure: true,
     };
 
-    const { accessToken, newRefreshToken } =
+    const { accessToken, refreshToken: newRefreshToken } =
       await generateAccessAndRefreshTokens(user._id);
 
     return res
@@ -208,15 +208,17 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
           200,
           {
             accessToken,
-            refreshToken: newRefreshToken,
+            newRefreshToken,
           },
           "Access token refreshed!"
         )
-      );
+
+    );
   } catch (error) {
     throw new ApiError(401, error?.message || "Invalid refresh token!");
   }
 });
+
 
 const changeUserPassword = asyncHandler(async (req, res) => {
   const { oldPassword, newPassword } = req.body;
@@ -395,7 +397,7 @@ const getWatchHistory = asyncHandler(async (req, res) => {
   const user = await User.aggregate([
     {
       $match: {
-        _id: new mongoose.Types.ObjectId.createFromHexString(req.user._id),
+        _id: new mongoose.Types.ObjectId(req.user._id),
       },
     },
     {
