@@ -1,7 +1,7 @@
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/apiError.js";
 import { User } from "../models/user.model.js";
-import { uploadOnClodinary } from "../utils/cloudinary.fileHandler.js";
+import { uploadOnCloudinary } from "../utils/cloudinary.fileHandler.js";
 import { ApiResponse } from "../utils/apiResponse.js";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
@@ -59,8 +59,8 @@ const registerUser = asyncHandler(async (req, res) => {
   }
 
   //upload images to cloudinary
-  const avatar = await uploadOnClodinary(avatarLocalPath);
-  const coverImage = await uploadOnClodinary(coverImageLocalPath);
+  const avatar = await uploadOnCloudinary(avatarLocalPath);
+  const coverImage = await uploadOnCloudinary(coverImageLocalPath);
   //create user object if images are uploaded successfully; create DB entry
   if (!avatar) {
     throw new ApiError(400, "Profile image is required!");
@@ -212,13 +212,11 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
           },
           "Access token refreshed!"
         )
-
-    );
+      );
   } catch (error) {
     throw new ApiError(401, error?.message || "Invalid refresh token!");
   }
 });
-
 
 const changeUserPassword = asyncHandler(async (req, res) => {
   const { oldPassword, newPassword } = req.body;
