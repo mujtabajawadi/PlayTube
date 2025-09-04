@@ -4,7 +4,10 @@ import { User } from "../models/user.model.js";
 import { ApiError } from "../utils/apiError.js";
 import { ApiResponse } from "../utils/apiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
-import { uploadOnCloudinary } from "../utils/cloudinary.fileHandler.js";
+import {
+  uploadOnCloudinary,
+  deleteFromCloudinary,
+} from "../utils/cloudinary.fileHandler.js";
 
 const publishAVideo = asyncHandler(async (req, res) => {
   const { title, description } = req.body;
@@ -126,22 +129,137 @@ const getVideoById = asyncHandler(async (req, res) => {
   video.viwes += 1;
   await video.save({ validateBeforeSave: false });
 
-
-  return res.status(200).json(new ApiResponse(200, video, "Video fetched successfully!"))
+  return res
+    .status(200)
+    .json(new ApiResponse(200, video, "Video fetched successfully!"));
 });
 
 const updateVideo = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
   //TODO: update video details like title, description, thumbnail
+
+  const { title, description } = req.body;
+  const newThumbnailLocalPath = req.file?.path;
+  const owner = req.user?._id;
+
+  if (!isValidObjectId(videoId)) {
+    throw new ApiError(400, "Invalid video ID!");
+  }
+
+  if (!title && !description && !newThumbnailLocalPath) {
+    throw new ApiError(400, "Atleast one filed is required!");
+  }
+
+  const videoToUpdate = await Video.findById(videoId);
+
+  if (!videoToUpdate) {
+    throw new ApiError(404, "Video not found!");
+  }
+
+  if (videoToUpdate.owner.toString() !== owner.toString()) {
+    throw new ApiError(403, "You are not authorized to update this video");
+  }
+
+  let thumbnailUpdate = {};
+  if (newThumbnailLocalPath) {
+    const newThumbnail = uploadOnCloudinary(newThumbnailLocalPath);
+    if (newThumbnail) {
+      await deleteFromCloudinary(videoToUpdate?.thumbnail);
+      thumbnailUpdate = { thumbnail: newThumbnail?.url };
+    }
+  }
+
+  const updatedVideo = await Video.findByIdAndUpdate(
+    videoId,
+    {
+      $set: {
+        title: title || videoToUpdate?.title,
+        description: description || videoToUpdate?.description,
+        ...thumbnailUpdate,
+      },
+    },
+    {
+      new: true,
+    }
+  );
+
+  if (!updatedVideo) {
+    throw new ApiError(500, "Failed to update Video!");
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, updatedVideo, "Video updated Successfully!"));
 });
 
 const deleteVideo = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
   //TODO: delete video
+
+  const owner = req.user?._id;
+
+  if (!isValidObjectId(videoId)) {
+    throw new ApiError(400, "Invalid video ID!");
+  }
+
+  const videoToDelete = await Video.findById(videoId);
+
+  if (!videoToDelete) {
+    throw new ApiError(404, "Video not found!");
+  }
+
+  if (!videoToDelete.owner.toString() !== owner.toString()) {
+    throw new ApiError(403, "You are not authorized to delete this video!");
+  }
+
+  await deleteFromCloudinary(videoToDelete.videoFile);
+  await deleteFromCloudinary(videoToDelete.thumbnail);
+
+  const result = await Video.findByIdAndDelete(videoId);
+
+  if (!result) {
+    throw new ApiError(500, "Failed to delete video!");
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, {}, "Video deleted Successfully!"));
 });
 
 const togglePublishStatus = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
+
+  const owner = req.user?._id;
+
+  if (!isValidObjectId(videoId)) {
+    throw new ApiError(400, "Invalid video ID");
+  }
+
+  const video = await Video.findById(videoId);
+
+  if (!video) {
+    throw new ApiError(404, "Video not found");
+  }
+
+  if (video.owner.toString() !== owner.toString()) {
+    throw new ApiError(
+      403,
+      "You are not authorized to change the status of this video"
+    );
+  }
+
+  video.isPublished = !video.isPublished;
+  await video.save({ validateBeforeSave: false });
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        video,
+        "Video visibility status changed Successfully!"
+      )
+    );
 });
 
 export {
