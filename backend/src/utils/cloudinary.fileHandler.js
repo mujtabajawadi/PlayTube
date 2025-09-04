@@ -26,8 +26,11 @@ const deleteFromCloudinary = async (url) => {
   try {
     if (!url) return null;
 
-    const publicId = url.split("/").pop().split(".")[0];
-    const deleteResponse = await cloudinary.uploader.destroy(publicId);
+    const urlParts = url.split("/")
+    const resource_type = urlParts[urlParts.indexOf("upload") -1]
+
+    const publicId = urlParts.pop().split(".")[0]
+    const deleteResponse = await cloudinary.uploader.destroy(publicId, {resource_type: resource_type});
     return deleteResponse;
   } catch (error) {
     throw new ApiError(

@@ -15,6 +15,7 @@ const publishAVideo = asyncHandler(async (req, res) => {
 
   const owner = req.user?._id;
 
+
   if (!title || !description) {
     throw new ApiError(400, "Title and description are required!");
   }
@@ -162,10 +163,11 @@ const updateVideo = asyncHandler(async (req, res) => {
 
   let thumbnailUpdate = {};
   if (newThumbnailLocalPath) {
-    const newThumbnail = uploadOnCloudinary(newThumbnailLocalPath);
+    const newThumbnail = await uploadOnCloudinary(newThumbnailLocalPath);
     if (newThumbnail) {
       await deleteFromCloudinary(videoToUpdate?.thumbnail);
       thumbnailUpdate = { thumbnail: newThumbnail?.url };
+    
     }
   }
 
@@ -196,7 +198,7 @@ const deleteVideo = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
   //TODO: delete video
 
-  const owner = req.user?._id;
+  const owner = req.user._id;
 
   if (!isValidObjectId(videoId)) {
     throw new ApiError(400, "Invalid video ID!");
@@ -208,7 +210,7 @@ const deleteVideo = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Video not found!");
   }
 
-  if (!videoToDelete.owner.toString() !== owner.toString()) {
+  if (videoToDelete.owner.toString() !== owner.toString()) {
     throw new ApiError(403, "You are not authorized to delete this video!");
   }
 
