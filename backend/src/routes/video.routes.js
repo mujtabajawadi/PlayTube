@@ -32,6 +32,6 @@ router
 
 router.route("/delete-video/:videoId").delete(deleteVideo);
 
-router.route("/toggle/publish/:videoId").patch(togglePublishStatus);
+router.route("/toggle-publish/:videoId").patch(togglePublishStatus);
 
 export default router;
