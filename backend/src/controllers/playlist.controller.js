@@ -150,11 +150,122 @@ const getUserPlaylists = asyncHandler(async (req, res) => {
 const getPlaylistById = asyncHandler(async (req, res) => {
   const { playlistId } = req.params;
   //TODO: get playlist by id
+  const ownerId = req.user?._id;
+
+  if (!isValidObjectId(playlistId)) {
+    throw new ApiError(400, "Invalid playlist ID!");
+  }
+
+  const playlistCheck = await Playlist.findById(playlistId);
+
+  if (playlistCheck.owner.toString() !== ownerId.toString()) {
+    throw new ApiError(401, "You are not authorized to access this playlist!");
+  }
+
+  if (!playlistCheck) {
+    throw new ApiError(404, "Playlist not found!");
+  }
+
+  const playlist = await Playlist.aggregate([
+    {
+      $match: { _id: new mongoose.Types.ObjectId(playlistId) },
+    },
+    {
+      $lookup: {
+        from: "videos",
+        localField: "videos",
+        foreignField: "_id",
+        as: "videos",
+        pipeline: [
+          {
+            $lookup: {
+              from: "users",
+              localField: "owner",
+              foreignField: "_id",
+              as: "ownerDetails",
+              pipeline: [
+                {
+                  $project: {
+                    fullName: 1,
+                    avatar: 1,
+                  },
+                },
+              ],
+            },
+          },
+          {
+            $addFields: {
+              owner: {
+                $first: "$ownerDetails",
+              },
+            },
+          },
+          {
+            $project: {
+              ownerDetails: 0,
+            },
+          },
+        ],
+      },
+    },
+  ]);
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, playlist[0], "Playlist fetched successfully!"));
 });
 
 const removeVideoFromPlaylist = asyncHandler(async (req, res) => {
   const { playlistId, videoId } = req.params;
   // TODO: remove video from playlist
+
+  const ownerId = req.user?._id;
+
+  if (!ownerId) {
+    throw new ApiError(401, "Unauthorized request!");
+  }
+
+  if (!isValidObjectId(playlistId) || !isValidObjectId(videoId)) {
+    throw new ApiError(400, "Invalid playlist ID or video ID!");
+  }
+
+  const playlist = await Playlist.findById(playlistId);
+
+  if (!playlist) {
+    throw new ApiError(404, "Playlist not found!");
+  }
+
+  if (playlist.owner.toString() !== ownerId.toString()) {
+    throw new ApiError(
+      403,
+      "You are not authorized to remove video from plalist!"
+    );
+  }
+
+  const updatedPlaylist = await Playlist.findByIdAndUpdate(
+    playlistId,
+    {
+      $pull: {
+        videos: videoId,
+      },
+    },
+    {
+      new: true,
+    }
+  );
+  if (!updatedPlaylist) {
+    throw new ApiError(500, "Failed to remove video from playlist!");
+  }
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        updatePlaylist,
+        "Video removed from playlist successfully!"
+      )
+    );
 });
 
 const deletePlaylist = asyncHandler(async (req, res) => {
