@@ -271,12 +271,85 @@ const removeVideoFromPlaylist = asyncHandler(async (req, res) => {
 const deletePlaylist = asyncHandler(async (req, res) => {
   const { playlistId } = req.params;
   // TODO: delete playlist
+
+  const ownerId = req.user?._id;
+  if (!ownerId) {
+    throw new ApiError(401, "Unauthorized request!");
+  }
+
+  if (!isValidObjectId(playlistId)) {
+    throw new ApiError(400, "Invalid playlist ID!");
+  }
+
+  const playlistToDelete = await Playlist.findById(playlistId);
+
+  if (!playlistToDelete) {
+    throw new ApiError(404, "Playlist not found!");
+  }
+
+  if (playlistToDelete.owner.toString() !== ownerId.toString()) {
+    throw new ApiError(403, "You are not authorized to delete this playlist!");
+  }
+
+  const result = await Playlist.findByIdAndDelete(playlistId);
+  if (!result) {
+    throw new ApiError(500, "Failed to delete playlist!");
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, {}, "Playlist deleted successfully!"));
 });
 
-const updatePlaylist = asyncHandler(async (req, res) => {
+const editPlaylist = asyncHandler(async (req, res) => {
   const { playlistId } = req.params;
   const { name } = req.body;
   //TODO: update playlist
+
+  const ownerId = req.user?._id;
+  if (!ownerId) {
+    throw new ApiError(401, "Unauthorized request!");
+  }
+
+  if (!isValidObjectId(playlistId)) {
+    throw new ApiError(400, "Invalid playlist ID!");
+  }
+
+  if (!name) {
+    throw new ApiError(400, "Name field is required!");
+  }
+
+  const playlistToEdit = await Playlist.findById(playlistId);
+
+  if (!playlistToEdit) {
+    throw new ApiError(404, "Playlist not found!");
+  }
+
+  if (playlistToEdit.owner.toString() !== ownerId.toString()) {
+    throw new ApiError(403, "You are not authorized to edit the playlist!");
+  }
+
+  const editedPlaylist = await Playlist.findByIdAndUpdate(
+    playlistId,
+    {
+      $set: {
+        name: name || playlistToEdit.name,
+      },
+    },
+    {
+      new: true,
+    }
+  );
+
+  if (!editedPlaylist) {
+    throw new ApiError(500, "Failed to edit playlist!");
+  }
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(200, editedPlaylist, "Playlist edited successfully!")
+    );
 });
 
 export {
@@ -286,5 +359,5 @@ export {
   addVideoToPlaylist,
   removeVideoFromPlaylist,
   deletePlaylist,
-  updatePlaylist,
+  editPlaylist,
 };
