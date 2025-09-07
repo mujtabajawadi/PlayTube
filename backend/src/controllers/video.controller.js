@@ -117,6 +117,10 @@ const getAllVideos = asyncHandler(async (req, res) => {
 const getVideoById = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
   //TODO: get video by id
+  const currentUser = req.user?._id
+  if (!currentUser) {
+    throw new ApiError(401, "Unauthorized request!")
+  }
   if (!isValidObjectId(videoId)) {
     throw new ApiError(400, "Invalid video ID!");
   }
@@ -127,8 +131,19 @@ const getVideoById = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Video not found or is private!");
   }
 
-  video.viwes += 1;
+  video.views += 1;
   await video.save({ validateBeforeSave: false });
+
+  await User.findByIdAndUpdate(currentUser,
+    {
+      $addToSet: {
+        watchHistory: video._id
+      }
+    },
+    {
+      new: true
+    }
+  )
 
   return res
     .status(200)
