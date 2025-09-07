@@ -139,11 +139,7 @@ const getUserPlaylists = asyncHandler(async (req, res) => {
   return res
     .status(200)
     .json(
-      new ApiResponse(
-        200,
-        !playlists.length ? "Playlist is empty" : playlists,
-        "User playlists fetched successfully!"
-      )
+      new ApiResponse(200, playlists, "User playlists fetched successfully!")
     );
 });
 
