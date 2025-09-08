@@ -52,18 +52,81 @@ const publishAVideo = asyncHandler(async (req, res) => {
     .json(new ApiResponse(201, video, "Video published Successfully!"));
 });
 
+// const getAllVideos = asyncHandler(async (req, res) => {
+//   const { page = 1, limit = 20, query, sortBy, sortType, userId } = req.query;
+//   //TODO: get all videos based on query, sort, pagination
+
+//   const pipeline = [];
+
+//   pipeline.push({
+//     $match: {
+//       isPublished: true,
+//     },
+//   });
+
+//   if (query) {
+//     pipeline.push({
+//       $match: {
+//         $or: [
+//           { title: { $regex: query, $options: "i" } },
+//           { description: { $regex: query, $options: "i" } },
+//         ],
+//       },
+//     });
+//   }
+
+//   if (userId && isValidObjectId(userId)) {
+//     pipeline.push({
+//       $match: {
+//         owner: new mongoose.Types.ObjectId(userId),
+//       },
+//     });
+//   }
+
+//   const sort = {};
+//   if (sortBy && sortType) {
+//     sort[sortBy] = sortType === "asc" ? 1 : -1;
+//     pipeline.push({
+//       $sort: sort,
+//     });
+//   } else {
+//     pipeline.push({
+//       $sort: { createdAt: -1 },
+//     });
+//   }
+
+//   const skip = (page - 1) * limit;
+//   pipeline.push({
+//     $skip: skip,
+//   });
+//   pipeline.push({
+//     $limit: parseInt(limit),
+//   });
+
+//   const videos = await Video.aggregate(pipeline);
+
+//   if (!videos || !videos.length) {
+//     throw new ApiError(404, "No videos found!");
+//   }
+
+//   return res
+//     .status(200)
+//     .json(new ApiResponse(200, { videos }, "Videos fetched successfully!"));
+// });
+
 const getAllVideos = asyncHandler(async (req, res) => {
   const { page = 1, limit = 20, query, sortBy, sortType, userId } = req.query;
-  //TODO: get all videos based on query, sort, pagination
 
   const pipeline = [];
 
+  // Stage 1: Filter by published status
   pipeline.push({
     $match: {
       isPublished: true,
     },
   });
 
+  // Stage 2: Filter by search query
   if (query) {
     pipeline.push({
       $match: {
@@ -75,7 +138,11 @@ const getAllVideos = asyncHandler(async (req, res) => {
     });
   }
 
-  if (userId && isValidObjectId(userId)) {
+  // Stage 3: Filter by owner
+  if (userId) {
+    if (!isValidObjectId(userId)) {
+      throw new ApiError(400, "Invalid user ID");
+    }
     pipeline.push({
       $match: {
         owner: new mongoose.Types.ObjectId(userId),
@@ -83,36 +150,94 @@ const getAllVideos = asyncHandler(async (req, res) => {
     });
   }
 
+  // Stage 4: Lookup for the video owner details
+  pipeline.push({
+    $lookup: {
+      from: "users",
+      localField: "owner",
+      foreignField: "_id",
+      as: "owner",
+      pipeline: [
+        {
+          $project: {
+            _id: 1,
+            username: 1,
+            fullName: 1,
+            avatar: 1,
+          },
+        },
+      ],
+    },
+  });
+
+  // Stage 5: Add the owner as a single object
+  pipeline.push({
+    $addFields: {
+      owner: {
+        $first: "$owner",
+      },
+    },
+  });
+
+  // Stage 6: Lookup for likes count and user's like status
+  pipeline.push({
+    $lookup: {
+      from: "likes",
+      localField: "_id",
+      foreignField: "video",
+      as: "likes",
+    },
+  });
+
+  // Stage 7: Add fields for likes count and user's like status
+  pipeline.push({
+    $addFields: {
+      likesCount: {
+        $size: "$likes",
+      },
+      isLiked: {
+        $cond: {
+          if: {
+            $in: [req.user?._id, "$likes.likedBy"],
+          },
+          then: true,
+          else: false,
+        },
+      },
+    },
+  });
+
+  // Stage 8: Project to exclude unwanted fields
+  pipeline.push({
+    $project: {
+      likes: 0,
+    },
+  });
+
+  // Stage 9: Sorting
   const sort = {};
   if (sortBy && sortType) {
     sort[sortBy] = sortType === "asc" ? 1 : -1;
-    pipeline.push({
-      $sort: sort,
-    });
   } else {
-    pipeline.push({
-      $sort: { createdAt: -1 },
-    });
+    sort.createdAt = -1; // Default sort by newest first
   }
+  pipeline.push({ $sort: sort });
 
-  const skip = (page - 1) * limit;
-  pipeline.push({
-    $skip: skip,
-  });
-  pipeline.push({
-    $limit: parseInt(limit),
-  });
+  const options = {
+    page: parseInt(page, 10),
+    limit: parseInt(limit, 10),
+  };
 
-  const videos = await Video.aggregate(pipeline);
+  const videoAggregate = Video.aggregate(pipeline);
 
-  if (!videos || !videos.length) {
-    throw new ApiError(404, "No videos found!");
-  }
+  const result = await Video.aggregatePaginate(videoAggregate, options);
 
   return res
     .status(200)
-    .json(new ApiResponse(200, { videos }, "Videos fetched successfully!"));
+    .json(new ApiResponse(200, result, "Videos fetched successfully"));
 });
+
+
 
 const getVideoById = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
