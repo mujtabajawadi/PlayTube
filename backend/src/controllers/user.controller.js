@@ -323,6 +323,13 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
 
 const getUserChannelProfile = asyncHandler(async (req, res) => {
   const { username } = req.params;
+  const currentUser = req.user?._id || null;
+
+  console.log(currentUser);
+
+  if (!username) {
+    throw new ApiError(401, "Unauthorized request!");
+  }
 
   if (!username?.trim()) {
     throw new ApiError(400, "Username is missing!");
@@ -360,8 +367,10 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
         },
         isSubscribed: {
           $cond: {
-            if: { $in: [req.user?._id, "$subscribers.subscriber"] },
-            then: true,
+            if: currentUser !== (undefined || null),
+            then: {
+              $in:[currentUser, "$subscribers.subscriber"]
+            },
             else: false,
           },
         },
