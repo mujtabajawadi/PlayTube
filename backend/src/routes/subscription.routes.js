@@ -7,7 +7,7 @@ import {
 
 const router = Router();
 
-router.route("/c/:channelId").post(verifyJWT, toggleSubscription);
 router.route("/").get(verifyJWT, getSubscribedChannels);
+router.route("/c/:channelId").post(verifyJWT, toggleSubscription);
 
 export default router;

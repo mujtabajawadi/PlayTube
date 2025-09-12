@@ -11,11 +11,10 @@ const router = Router();
 
 router.use(verifyJWT);
 
-router.route("/v/:videoId").patch(toggleVideoLike);
 router.route("/videos").get(getLikedVideos);
 
+router.route("/v/:videoId").patch(toggleVideoLike);
 router.route("/c/:commentId").patch(toggleCommentLike);
-
 router.route("/t/:tweetId").patch(toggleTweetLike);
 
 export default router;
