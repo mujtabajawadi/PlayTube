@@ -325,8 +325,6 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
   const { username } = req.params;
   const currentUser = req.user?._id || null;
 
-  console.log(currentUser);
-
   if (!username) {
     throw new ApiError(401, "Unauthorized request!");
   }
@@ -393,8 +391,6 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
   if (!channel?.length) {
     throw new ApiError(404, "Channel does not exist!");
   }
-
-  console.log(channel);
   return res
     .status(200)
     .json(new ApiResponse(200, channel[0], "Channel fetched successfully!"));

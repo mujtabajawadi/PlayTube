@@ -180,6 +180,109 @@ const getMyTweets = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, myTweets, "Tweets fetched successfully!"));
 });
 
+const getFollowedUsersTweets = asyncHandler(async (req, res) => {
+  const { page = 1, limit = 10 } = req.query;
+  const currentUser = req.user?._id;
+  if (!currentUser) {
+    throw new ApiError(401, "Unauthorized request!");
+  }
+
+  const followedChannels = await User.aggregate([
+    {
+      $match: {
+        _id: new mongoose.Types.ObjectId(currentUser),
+      },
+    },
+    {
+      $lookup: {
+        from: "subscriptions",
+        localField: "_id",
+        foreignField: "subscriber",
+        as: "subscribedChannels",
+      },
+    },
+    {
+      $unwind: "$subscribedChannels",
+    },
+    {
+      $project: {
+        channelId: "$subscribedChannels.channel",
+      },
+    },
+  ]);
+
+  const followedChannelsId = followedChannels.map(
+    (channel) => channel.channelId
+  );
+
+  const tweetsPipelines = [
+    {
+      $match: {
+        owner: {
+          $in: followedChannelsId,
+        },
+      },
+    },
+    {
+      $lookup: {
+        from: "users",
+        localField: "owner",
+        foreignField: "_id",
+        as: "ownerDetails",
+      },
+    },
+    {
+      $unwind: "$ownerDetails",
+    },
+    {
+      $lookup: {
+        from: "likes",
+        localField: "_id",
+        foreignField: "tweet",
+        as: "likes",
+      },
+    },
+    {
+      $addFields: {
+        likesCount: {
+          $size: "$likes",
+        },
+      },
+    },
+    {
+      $project: {
+        content: 1,
+        createdAt: 1,
+        updatedAt: 1,
+        likesCount: 1,
+        "ownerDetails.fullName": 1,
+        "ownerDetails.avatar": 1,
+        "ownerDetails.username": 1,
+      },
+    },
+    {
+      $sort: {
+        createdAt: -1,
+      },
+    },
+  ];
+
+  const options = {
+    page: parseInt(page),
+    limit: parseInt(limit),
+  };
+
+  const tweets = await Tweet.aggregatePaginate(tweetsPipelines, options);
+
+  if (!tweets) {
+    throw new ApiError(500, "Failed to fetch tweets!");
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, tweets, "Tweets fetched successfully!"));
+});
+
 const updateTweet = asyncHandler(async (req, res) => {
   //TODO: update tweet
 
@@ -261,4 +364,11 @@ const deleteTweet = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, deletedTweet, "Tweet deleted Successfully!"));
 });
 
-export { createTweet, getUserTweets, getMyTweets, updateTweet, deleteTweet };
+export {
+  createTweet,
+  getUserTweets,
+  getMyTweets,
+  getFollowedUsersTweets,
+  updateTweet,
+  deleteTweet,
+};
