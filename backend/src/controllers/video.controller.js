@@ -119,14 +119,11 @@ const getAllVideos = asyncHandler(async (req, res) => {
 
   const pipeline = [];
 
-  // Stage 1: Filter by published status
   pipeline.push({
     $match: {
       isPublished: true,
     },
   });
-
-  // Stage 2: Filter by search query
   if (query) {
     pipeline.push({
       $match: {
@@ -138,7 +135,6 @@ const getAllVideos = asyncHandler(async (req, res) => {
     });
   }
 
-  // Stage 3: Filter by owner
   if (userId) {
     if (!isValidObjectId(userId)) {
       throw new ApiError(400, "Invalid user ID");
@@ -150,7 +146,6 @@ const getAllVideos = asyncHandler(async (req, res) => {
     });
   }
 
-  // Stage 4: Lookup for the video owner details
   pipeline.push({
     $lookup: {
       from: "users",
@@ -170,7 +165,6 @@ const getAllVideos = asyncHandler(async (req, res) => {
     },
   });
 
-  // Stage 5: Add the owner as a single object
   pipeline.push({
     $addFields: {
       owner: {
@@ -179,7 +173,7 @@ const getAllVideos = asyncHandler(async (req, res) => {
     },
   });
 
-  // Stage 6: Lookup for likes count and user's like status
+
   pipeline.push({
     $lookup: {
       from: "likes",
@@ -189,7 +183,6 @@ const getAllVideos = asyncHandler(async (req, res) => {
     },
   });
 
-  // Stage 7: Add fields for likes count and user's like status
   pipeline.push({
     $addFields: {
       likesCount: {
@@ -207,19 +200,19 @@ const getAllVideos = asyncHandler(async (req, res) => {
     },
   });
 
-  // Stage 8: Project to exclude unwanted fields
   pipeline.push({
     $project: {
       likes: 0,
     },
   });
 
-  // Stage 9: Sorting
+
+
   const sort = {};
   if (sortBy && sortType) {
     sort[sortBy] = sortType === "asc" ? 1 : -1;
   } else {
-    sort.createdAt = -1; // Default sort by newest first
+    sort.createdAt = -1;
   }
   pipeline.push({ $sort: sort });
 
@@ -229,6 +222,7 @@ const getAllVideos = asyncHandler(async (req, res) => {
   };
 
   const videoAggregate = Video.aggregate(pipeline);
+  console.log(pipeline)
 
   const result = await Video.aggregatePaginate(videoAggregate, options);
 

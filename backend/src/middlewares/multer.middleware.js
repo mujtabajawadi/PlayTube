@@ -9,4 +9,16 @@ const storage = multer.diskStorage({
   },
 });
 
-export const upload = multer({ storage });
+export const upload = multer({
+  storage,
+  limits: {
+    fileSize: 100 * 1024 * 1024,
+  },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith("video/") || file.mimetype.startsWith("image/")) {
+      cb(null, true);
+    } else {
+      cb(new Error("Invalid file type. Only videos and images are allowed!"), false);
+    }
+  }
+});

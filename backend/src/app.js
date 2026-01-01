@@ -25,6 +25,8 @@ import subscriptionRouter from './routes/subscription.routes.js'
 import tweetRouter from './routes/tweet.routes.js'
 import userRouter from './routes/user.routes.js'
 import videoRouter from './routes/video.routes.js'
+import multer from "multer";
+import { ApiError } from "./utils/apiError.js";
 
 
 
@@ -37,6 +39,23 @@ app.use('/api/v1/subscriptions', subscriptionRouter)
 app.use('/api/v1/tweets', tweetRouter)
 app.use('/api/v1/users', userRouter)
 app.use('/api/v1/videos', videoRouter)
+
+
+app.use((err, req, res, next) => {
+  if (err instanceof multer.MulterError) {
+    if (err.code === "LIMIT_FILE_SIZE") {
+      err = new ApiError(400, "File is too large! Max limit is 100MB")
+    } else {
+      err = new ApiError(400, err.message)
+    }
+  }
+  return res.status(err.statusCode).json({
+    success: false,
+    message: err.message,
+    data: err.data,
+    errors: err.errors
+  })
+})
 
 
 export { app };
