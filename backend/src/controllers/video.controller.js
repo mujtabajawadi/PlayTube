@@ -10,8 +10,10 @@ import {
 } from "../utils/cloudinary.fileHandler.js";
 
 const publishAVideo = asyncHandler(async (req, res) => {
-  const { title, description } = req.body;
+  const { title, description, isPublished} = req.body;
   // TODO: get video, upload to cloudinary, create video
+
+  const visibility = String(isPublished).toLowerCase() === "true"
 
   const owner = req.user?._id;
 
@@ -40,6 +42,7 @@ const publishAVideo = asyncHandler(async (req, res) => {
     videoFile: videoFile.url,
     thumbnail: thumbnail.url,
     duration: videoFile.duration,
+    isPublished: visibility,
     owner,
   });
 
