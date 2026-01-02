@@ -1,10 +1,12 @@
 import { useForm } from "react-hook-form";
 import { Input } from "../index";
 import { useState } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
+import objVideoService from "../../services/videoService";
 
 const PublishVideo = () => {
   const [step, setStep] = useState(1);
+  const navigate = useNavigate();
 
   const {
     watch,
@@ -16,10 +18,9 @@ const PublishVideo = () => {
   } = useForm();
 
   const fieldsPerStep = {
-    1: ["username", "fullName"],
-    2: ["email"],
-    3: ["password"],
-    4: ["avatar", "coverImage"],
+    1: ["videoFile"],
+    2: ["thumbnail", "title"],
+    3: ["description"],
   };
   const totalSteps = Object.keys(fieldsPerStep).length;
 
@@ -44,7 +45,21 @@ const PublishVideo = () => {
     ? URL.createObjectURL(thumbnailFile[0])
     : null;
 
-  const uploadVideo = (data) => {};
+  const uploadVideo = async (data) => {
+    try {
+      const uploadedVideo = await objVideoService.publishVideo(data);
+
+      if (uploadedVideo) {
+        navigate("/");
+      }
+    } catch (error) {
+      throw error;
+    } finally {
+      reset();
+      setStep(1);
+    }
+    console.log(data);
+  };
 
   return (
     <form onSubmit={handleSubmit(uploadVideo)}>
@@ -103,6 +118,39 @@ const PublishVideo = () => {
             </div>
           )}
 
+          <div>
+            <Input
+              label="Title: "
+              type="text"
+              placeholder="Create a title"
+              {...register("title", {
+                required: { value: true, message: "*Title is required!" },
+              })}
+            />
+            {errors.title && (
+              <p className="text-red-700 text-[3.5vw] sm:text-[1.5vw]  md:text-[1vw]">
+                {errors.title.message}
+              </p>
+            )}
+
+            <p>Set visibility: </p>
+            <div>
+              <Input
+                label="Private"
+                type="radio"
+                value="false"
+                defaultChecked
+                {...register("isPublished")}
+              />
+              <Input
+                label="Public"
+                type="radio"
+                value="true"
+                {...register("isPublished")}
+              />
+            </div>
+          </div>
+
           <button type="button" onClick={backStep}>
             Back
           </button>
@@ -110,6 +158,39 @@ const PublishVideo = () => {
           <button type="button" onClick={nextStep}>
             Next
           </button>
+        </>
+      )}
+
+      {step === 3 && (
+        <>
+          <div>
+            <label htmlFor="description">Description</label>
+          </div>
+          <textarea
+            id="description"
+            rows="10"
+            cols="50"
+            className="border"
+            {...register("description", {
+              required: { value: true, message: "*Description is required!" },
+            })}
+          />
+          {errors.description && (
+            <p className="text-red-700 text-[3.5vw] sm:text-[1.5vw]  md:text-[1vw]">
+              {errors.description.message}
+            </p>
+          )}
+          <div>
+            <button type="button" onClick={backStep}>
+              Back
+            </button>
+
+            <Input
+              type="submit"
+              disabled={isSubmitting}
+              value={isSubmitting ? "Uploading..." : "Upload"}
+            />
+          </div>
         </>
       )}
     </form>

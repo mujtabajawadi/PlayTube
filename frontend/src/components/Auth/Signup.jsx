@@ -52,8 +52,8 @@ const Signup = () => {
     } catch (error) {
       throw error;
     } finally {
-      setStep(1);
       reset();
+      setStep(1);
     }
   };
 
