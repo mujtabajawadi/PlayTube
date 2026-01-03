@@ -36,7 +36,9 @@ const VideoPlayer = () => {
       <video
         src={video.videoFile}
         controls
-        autoPlay
+              autoPlay
+              playsInline
+              preload="auto"
         className="w-full aspect-video rounded-xl border border-gray-800"
       />
 
