@@ -139,13 +139,13 @@ const PublishVideo = () => {
                 label="Private"
                 type="radio"
                 value="false"
-                defaultChecked
                 {...register("isPublished")}
               />
               <Input
                 label="Public"
                 type="radio"
                 value="true"
+                defaultChecked
                 {...register("isPublished")}
               />
             </div>

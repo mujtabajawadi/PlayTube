@@ -1,9 +1,13 @@
 import { formatDistanceToNow } from "date-fns"; // Optional for '2 days ago' text
+import { useNavigate } from "react-router-dom";
 
 const VideoCard = ({ video }) => {
+  const navigate = useNavigate()
+  
   console.log(video);
+
   return (
-    <div className="w-full cursor-pointer group">
+    <div className="w-full cursor-pointer group" onClick={()=> navigate(`/video/${video._id}`)}>
       {/* Thumbnail */}
       <div className="w-full relative aspect-video  overflow-hidden mb-3">
         <img

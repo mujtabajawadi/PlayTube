@@ -3,6 +3,8 @@ import Signup from "./Signup.jsx";
 import Login from "./Login.jsx";
 import Profile from "./Profile.jsx";
 import PublishVideo from "./PublishVideo.jsx";
+import VideoPlayerPage from "./VideoPlayerPage.jsx";
+
 
 
 
@@ -11,5 +13,6 @@ export {
     Login,
     Home,
     Profile,
-    PublishVideo
+    PublishVideo,
+    VideoPlayerPage
 }

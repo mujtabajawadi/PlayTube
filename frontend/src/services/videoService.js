@@ -52,6 +52,17 @@ export class VideoService {
         throw error
       }
   }
+
+  async getVideoById(videoId) {
+    try {
+      if(!videoId) throw new Error("Video Id not available!")
+      const response = await axiosInstance.get(`/videos/video/${videoId}`)
+      return response.data
+    } catch(error){
+      console.log("Error finding video:", error)
+      throw error
+    }
+  }
 }
 const objVideoService = new VideoService();
 export default objVideoService;
