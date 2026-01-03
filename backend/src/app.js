@@ -49,7 +49,7 @@ app.use((err, req, res, next) => {
       err = new ApiError(400, err.message)
     }
   }
-  return res.status(err.statusCode).json({
+  return res.status(400).json({
     success: false,
     message: err.message,
     data: err.data,
