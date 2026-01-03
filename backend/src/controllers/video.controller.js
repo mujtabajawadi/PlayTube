@@ -239,10 +239,10 @@ const getAllVideos = asyncHandler(async (req, res) => {
 const getVideoById = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
   //TODO: get video by id
-  const currentUser = req.user?._id
-  if (!currentUser) {
-    throw new ApiError(401, "Unauthorized request!")
-  }
+  // const currentUser = req.user?._id
+  // if (!currentUser) {
+  //   throw new ApiError(401, "Unauthorized request!")
+  // }
   if (!isValidObjectId(videoId)) {
     throw new ApiError(400, "Invalid video ID!");
   }
