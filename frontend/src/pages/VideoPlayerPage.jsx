@@ -1,27 +1,52 @@
 import { VideoPlayer } from '../components/index'
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import objVideoService from "../services/videoService";
 import { formatDistanceToNow } from "date-fns";
+import { useParams } from 'react-router-dom';
 
 const VideoPlayerPage = () => {
  
+  const { videoId } = useParams();
 
   const [video, setVideo] = useState(null)
+  const [loading, setLoading] = useState(true)
   const playerRef = useRef(null);
 
 
 
-  const handleDataFetching = useCallback((data) => {
-    setVideo(data);
-    console.log(data);
-  },[]);
-  if (!video) {
-    return (
-      <div className="p-4">
-        <VideoPlayer onDataFetched={handleDataFetching} />
-        <p>Loading video details...</p>
-      </div>
-    );
-  }
+
+   
+    useEffect(() => {
+      const fetchVideo = async () => {
+        try {
+          const videoData = await objVideoService.getVideoById(videoId);
+  
+          if (videoData) {
+            const data = videoData.data
+            setVideo(data)
+            setLoading(false)
+            console.log(data);
+          }
+        } catch (error) {
+          console.log(error);
+          throw error;
+        }
+      };
+      fetchVideo();
+    }, [videoId]);
+
+
+
+  
+
+  // if (!video) {
+  //   return (
+  //     <div className="p-4">
+  //       <VideoPlayer/>
+  //       <p>Loading video details...</p>
+  //     </div>
+  //   );
+  // }
 
   const getMimeType = (url) => {
     if (!url) return "video/mp4";
@@ -30,20 +55,23 @@ const VideoPlayerPage = () => {
     return "video/mp4"; // Default fallback
   };
 
-  const videoJsOptions = {
-    autoplay: true,
-    fill: true,
-    controls: true,
-    responsive: true,
-    fluid: true,
-    aspectRatio: "16:9",
-    sources: [
-      {
-        src: `${video.videoFile}`,
-        type: getMimeType(video.videoFile),
-      },
-    ],
-  };
+  const videoJsOptions = useMemo(() => {
+    if (!video) return null;
+    return {
+      autoplay: true,
+      fill: true,
+      controls: true,
+      responsive: true,
+      fluid: true,
+      aspectRatio: "16:9",
+      sources: [
+        {
+          src: `${video.videoFile}`,
+          type: getMimeType(video.videoFile),
+        },
+      ],
+    }
+  }, [video]);
 
  
 
@@ -51,24 +79,23 @@ const VideoPlayerPage = () => {
     playerRef.current = player;
 
     player.on("waiting", () => {
-      videojs.log("player is waiting");
+      console.log("player is waiting");
     });
 
     player.on("dispose", () => {
-      videojs.log("player will dispose");
+      console.log("player will dispose");
     });
   };
 
 
 
 
-  return (
+  return !loading && video ? (
     <div>
       <div className="w-full">
         <VideoPlayer
           options={videoJsOptions}
           onReady={handlePlayerReady}
-          onDataFetched={handleDataFetching}
         />
       </div>
       <div className='p-4'>
@@ -91,7 +118,7 @@ const VideoPlayerPage = () => {
         </div>
       </div>
     </div>
-  );
+  ): <div>Loading...</div>;
 }
 
 export default VideoPlayerPage
