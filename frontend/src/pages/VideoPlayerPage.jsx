@@ -25,7 +25,7 @@ const VideoPlayerPage = () => {
             const data = videoData.data
             setVideo(data)
             setLoading(false)
-            console.log(data);
+            // console.log(data);
           }
         } catch (error) {
           console.log(error);

@@ -4,6 +4,7 @@ import Login from "./Auth/Login.jsx";
 import VideoCard from "./video/VideoCard.jsx";
 import PublishVideo from "./video/PublishVideo.jsx";
 import VideoPlayer from "./video/VideoPlayer.jsx"
+import User from "./Auth/User.jsx";
 
 
-export { Input, Signup, Login, VideoCard, PublishVideo, VideoPlayer};
+export { Input, Signup, Login, VideoCard, PublishVideo, VideoPlayer, User};

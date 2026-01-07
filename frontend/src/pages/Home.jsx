@@ -14,7 +14,7 @@ const Home = () => {
     const loadVideos = async () => {
       try {
         const response = await objVideoService.getAllVideos()
-        console.log(response.data.docs)
+        // console.log(response.data.docs)
         if (response?.data?.docs) {
           setVideo(response.data.docs);
         }
@@ -35,8 +35,8 @@ const Home = () => {
 
 
   return !loading ? (
-    <div className='flex flex-col h-400'>
-      <div className="pb-12">
+    <div className='flex flex-col'>
+      <div className="pb-12 md:p-2 md:grid md:grid-cols-4 flex flex-col gap-3">
         {video.length > 0 ? (
           video.map((video) => <VideoCard key={video._id} video={video} />)
         ) : (
