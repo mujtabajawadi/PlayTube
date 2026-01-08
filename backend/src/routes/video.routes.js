@@ -2,17 +2,20 @@ import { Router } from "express";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 import { upload } from "../middlewares/multer.middleware.js";
 import {
+  updateVideo,
   deleteVideo,
   getAllVideos,
   getVideoById,
   publishAVideo,
+  cloudinaryWebhook,
   togglePublishStatus,
-  updateVideo,
 } from "../controllers/video.controller.js";
 
 const router = Router();
 
 router.route("/").get(getAllVideos);
+
+router.route("/cloudinary-webhook").post(cloudinaryWebhook);
 
 router.route("/video/:videoId").get(getVideoById);
 

@@ -9,6 +9,55 @@ import {
   deleteFromCloudinary,
 } from "../utils/cloudinary.fileHandler.js";
 
+
+
+
+const cloudinaryWebhook = asyncHandler(async (req, res) => {
+
+
+
+  console.log("3. WEBHOOK RECEIVED!", {
+    body: req.body,
+    query_token: req.query.auth_token,
+  });
+  // 1. Get the token from the URL query and the data from the body
+  const { auth_token } = req.query;
+  const { notification_type, public_id, status } = req.body;
+
+  // 2. Verify the secret token matches your .env
+  if (auth_token !== process.env.WEBHOOK_SECRET) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+
+  // 3. If the HLS transmuxing (eager) is finished
+  if (notification_type === "eager_ready") {
+    if (status === "success") {
+      // Find the video by publicId and set isPending to false
+      const updatedVideo = await Video.findOneAndUpdate(
+        { publicId: public_id },
+        {
+          $set: { isPending: false }
+        }, {
+            new: true
+          }
+      );
+      console.log(`✅ Webhook Success: Video ${public_id} is now ready.`);
+
+      console.log("4. DB UPDATED SUCCESSFULLY:", {
+        publicId: updatedVideo.publicId,
+        isPending: updatedVideo.isPending, // Should now be false
+      });
+    } else {
+      console.log(`❌ Webhook Error: Transmuxing failed for ${public_id}`);
+    }
+  }
+
+ 
+
+  // 4. Always send 200 back to Cloudinary
+  return res.status(200).json({ received: true });
+});
+
 const publishAVideo = asyncHandler(async (req, res) => {
   const { title, description, isPublished} = req.body;
   // TODO: get video, upload to cloudinary, create video
@@ -39,11 +88,20 @@ const publishAVideo = asyncHandler(async (req, res) => {
   const video = await Video.create({
     title,
     description,
-    videoFile: videoFile.url,
+    videoFile: videoFile.eager[0].secure_url,
     thumbnail: thumbnail.url,
     duration: videoFile.duration,
     isPublished: visibility,
+    publicId: videoFile.public_id, 
+    isPending: true,
     owner,
+  });
+
+
+  console.log("2. DB Entry Created:", {
+    id: video._id,
+    isPending: video.isPending, // Should be true
+    publicId: video.publicId,
   });
 
   if (!video) {
@@ -225,7 +283,6 @@ const getAllVideos = asyncHandler(async (req, res) => {
   };
 
   const videoAggregate = Video.aggregate(pipeline);
-  console.log(pipeline)
 
   const result = await Video.aggregatePaginate(videoAggregate, options);
 
@@ -233,8 +290,6 @@ const getAllVideos = asyncHandler(async (req, res) => {
     .status(200)
     .json(new ApiResponse(200, result, "Videos fetched successfully"));
 });
-
-
 
 const getVideoById = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
@@ -409,4 +464,5 @@ export {
   updateVideo,
   deleteVideo,
   togglePublishStatus,
+  cloudinaryWebhook
 };

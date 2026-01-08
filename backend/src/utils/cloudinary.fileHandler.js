@@ -13,6 +13,15 @@ const uploadOnCloudinary = async (localFilePath) => {
     if (!localFilePath) return null;
     const uploaderResponse = await cloudinary.uploader.upload(localFilePath, {
       resource_type: "auto",
+      eager: [{ streaming_profile: "full_hd", format: "m3u8" }],
+      eager_async: true,
+      eager_notification_url: `${process.env.CLOUDINARY_WEBHOOK_URL}?auth_token=${process.env.WEBHOOK_SECRET}`,
+    });
+
+    console.log("1. Cloudinary Upload Result:", {
+      public_id: uploaderResponse.public_id,
+      eager_status: uploaderResponse.eager?.[0]?.status, // Should say 'pending'
+      notification_url: uploaderResponse.notification_url, // Verify this is your Render URL
     });
     //console.log("File has been uploaded on Cloudinary.", uploaderResponse.url);
     fs.unlinkSync(localFilePath);
@@ -26,11 +35,13 @@ const deleteFromCloudinary = async (url) => {
   try {
     if (!url) return null;
 
-    const urlParts = url.split("/")
-    const resource_type = urlParts[urlParts.indexOf("upload") -1]
+    const urlParts = url.split("/");
+    const resource_type = urlParts[urlParts.indexOf("upload") - 1];
 
-    const publicId = urlParts.pop().split(".")[0]
-    const deleteResponse = await cloudinary.uploader.destroy(publicId, {resource_type: resource_type});
+    const publicId = urlParts.pop().split(".")[0];
+    const deleteResponse = await cloudinary.uploader.destroy(publicId, {
+      resource_type: resource_type,
+    });
     return deleteResponse;
   } catch (error) {
     throw new ApiError(
