@@ -15,7 +15,7 @@ const uploadOnCloudinary = async (localFilePath) => {
       resource_type: "auto",
       eager: [{ streaming_profile: "full_hd", format: "m3u8" }],
       eager_async: true,
-      eager_notification_url: `${process.env.CLOUDINARY_WEBHOOK_URL}?auth_token=${process.env.WEBHOOK_SECRET}`,
+      eager_notification_url: `https://playtube-swey.onrender.com/api/v1/videos/cloudinary-webhook`,
     });
 
     console.log("1. Cloudinary Upload Result:", {
