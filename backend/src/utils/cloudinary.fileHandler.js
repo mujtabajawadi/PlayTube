@@ -18,6 +18,9 @@ const uploadOnCloudinary = async (localFilePath) => {
       eager_notification_url: `https://playtube-swey.onrender.com/api/v1/videos/cloudinary-webhook`,
     });
 
+
+    console.log("Full Response: ", uploaderResponse)
+
     console.log("1. Cloudinary Upload Result:", {
       public_id: uploaderResponse.public_id,
       eager_status: uploaderResponse.eager?.[0]?.status, // Should say 'pending'
